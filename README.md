@@ -17,7 +17,9 @@ The app syncs Daily timesheet data, adds local manual admin time, calculates cre
 
 ## Development
 
-This starter is a Swift Package so it can live cleanly in GitHub and later be opened from Xcode.
+Open `Worksheet.xcodeproj` in Xcode for normal app development and previewing. The project builds a real macOS app bundle with bundle identifier `com.fallenartist.Worksheet`.
+
+The Swift package manifest is kept as a lightweight command-line/development wrapper around the same sources.
 
 For normal SwiftUI app development, install full Xcode. Apple's Command Line Tools alone are not enough on this machine because SwiftPM needs Xcode's developer tools.
 
@@ -33,7 +35,7 @@ Run from the command line:
 swift run Worksheet
 ```
 
-For a proper universal `.app` bundle, create/open a macOS app target in Xcode that uses these sources, then build with the standard `Any Mac` destination.
+For a universal `.app` bundle, select the `Worksheet` scheme in Xcode and build with the standard `Any Mac` destination.
 
 ## Daily Setup
 
