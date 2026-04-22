@@ -6,7 +6,7 @@ struct DailyWorksheetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        WindowGroup("Daily Worksheet") {
+        WindowGroup("Worksheet") {
             ContentView()
                 .environmentObject(AppModel.shared)
                 .frame(minWidth: 920, minHeight: 640)
@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "doc.text.magnifyingglass", accessibilityDescription: "Daily Worksheet")
+        item.button?.image = NSImage(systemSymbolName: "doc.text.magnifyingglass", accessibilityDescription: "Worksheet")
         item.button?.imagePosition = .imageOnly
 
         let menu = NSMenu()

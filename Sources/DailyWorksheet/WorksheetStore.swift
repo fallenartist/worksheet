@@ -5,7 +5,7 @@ final class WorksheetStore {
 
     private var storageURL: URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return base.appendingPathComponent("DailyWorksheet", isDirectory: true)
+        return base.appendingPathComponent("Worksheet", isDirectory: true)
     }
 
     private var entriesURL: URL {

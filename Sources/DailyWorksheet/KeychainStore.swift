@@ -4,7 +4,7 @@ import Security
 final class KeychainStore {
     static let shared = KeychainStore()
 
-    private let service = "DailyWorksheet"
+    private let service = "Worksheet"
     private let apiKeyAccount = "DailyAPIKey"
 
     private init() {}

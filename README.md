@@ -1,4 +1,4 @@
-# Daily Worksheet
+# Worksheet
 
 Personal macOS worksheet app for Daily Time Tracking reports.
 
@@ -30,7 +30,7 @@ swift build
 Run from the command line:
 
 ```bash
-swift run DailyWorksheet
+swift run Worksheet
 ```
 
 For a proper universal `.app` bundle, create/open a macOS app target in Xcode that uses these sources, then build with the standard `Any Mac` destination.

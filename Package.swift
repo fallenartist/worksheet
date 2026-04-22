@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "DailyWorksheet",
+    name: "Worksheet",
     platforms: [
         .macOS(.v11)
     ],
     products: [
-        .executable(name: "DailyWorksheet", targets: ["DailyWorksheet"])
+        .executable(name: "Worksheet", targets: ["DailyWorksheet"])
     ],
     targets: [
         .executableTarget(name: "DailyWorksheet")
