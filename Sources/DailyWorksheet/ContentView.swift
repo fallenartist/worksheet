@@ -53,6 +53,11 @@ struct WorksheetView: View {
             }
             .disabled(model.isSyncing)
 
+            Button(action: model.syncAvailableHistory) {
+                Label("Sync History", systemImage: "clock.arrow.circlepath")
+            }
+            .disabled(model.isSyncing)
+
             Button(action: exportPDF) {
                 Label("PDF", systemImage: "doc.richtext")
             }
@@ -108,6 +113,9 @@ struct WorksheetView: View {
         HStack {
             Text(model.statusMessage)
             Spacer()
+            if let error = model.lastHistorySyncError {
+                Text(error)
+            }
             Text("Daily last synced: \(model.lastDailySync)")
         }
         .font(.caption)
@@ -322,6 +330,8 @@ struct SettingsView: View {
             HStack {
                 Button("Save API Key", action: model.saveAPIKey)
                 Button("Test Sync", action: model.syncSelectedMonth)
+                    .disabled(model.isSyncing)
+                Button("Sync History", action: model.syncAvailableHistory)
                     .disabled(model.isSyncing)
             }
 

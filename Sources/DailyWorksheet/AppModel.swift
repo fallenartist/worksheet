@@ -10,6 +10,7 @@ final class AppModel: ObservableObject {
     @Published var statusMessage: String = "Ready"
     @Published var isSyncing = false
     @Published var lastDailySync: String = "Unknown"
+    @Published var lastHistorySyncError: String?
 
     private let apiClient = DailyAPIClient()
     private let store = WorksheetStore()
@@ -114,6 +115,7 @@ final class AppModel: ObservableObject {
         guard isSyncing == false else { return }
         isSyncing = true
         statusMessage = "Checking Daily sync status..."
+        lastHistorySyncError = nil
 
         let key = apiKey
         apiClient.fetchUser(apiKey: key) { [weak self] userResult in
@@ -121,7 +123,15 @@ final class AppModel: ObservableObject {
             switch userResult {
             case .success(let user):
                 self.lastDailySync = user.lastSynced ?? "Never"
-                self.fetchTimesheetAfterUserCheck(apiKey: key)
+                self.fetchMonth(containing: self.selectedMonth, apiKey: key) { result in
+                    self.isSyncing = false
+                    switch result {
+                    case .success:
+                        self.statusMessage = "Synced \(self.monthTitle)"
+                    case .failure(let error):
+                        self.statusMessage = "Could not sync \(self.monthTitle): \(error.localizedDescription)"
+                    }
+                }
             case .failure(let error):
                 self.isSyncing = false
                 self.statusMessage = error.localizedDescription
@@ -129,27 +139,107 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func fetchTimesheetAfterUserCheck(apiKey: String) {
-        let interval = calendar.monthInterval(containing: selectedMonth)
-        let start = interval.start
-        let end = calendar.lastDayOfMonth(containing: selectedMonth)
-        statusMessage = "Syncing \(monthTitle)..."
+    func syncAvailableHistory() {
+        guard isSyncing == false else { return }
+        isSyncing = true
+        statusMessage = "Checking Daily retention window..."
+        lastHistorySyncError = nil
 
-        apiClient.fetchTimesheet(start: start, end: end, apiKey: apiKey) { [weak self] result in
+        let key = apiKey
+        apiClient.fetchUser(apiKey: key) { [weak self] userResult in
             guard let self = self else { return }
-            self.isSyncing = false
 
-            switch result {
-            case .success(let days):
-                self.mergeDailyTimesheet(days)
-                self.statusMessage = "Synced \(self.monthTitle)"
+            switch userResult {
+            case .success(let user):
+                self.lastDailySync = user.lastSynced ?? "Never"
+                let months = self.availableHistoryMonths(dataRetentionDays: user.dataRetention)
+                guard months.isEmpty == false else {
+                    self.isSyncing = false
+                    self.statusMessage = "Daily did not report any syncable history."
+                    return
+                }
+                self.syncMonths(months, index: 0, apiKey: key, failedMonths: [])
             case .failure(let error):
-                self.statusMessage = error.localizedDescription
+                self.isSyncing = false
+                self.statusMessage = "Could not check Daily retention: \(error.localizedDescription)"
             }
         }
     }
 
-    private func mergeDailyTimesheet(_ days: [DailyTimesheetDay]) {
+    private func fetchMonth(containing month: Date, apiKey: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        let interval = calendar.monthInterval(containing: month)
+        let start = interval.start
+        let end = calendar.lastDayOfMonth(containing: month)
+        statusMessage = "Syncing \(Formatters.monthTitle.string(from: month))..."
+
+        apiClient.fetchTimesheet(start: start, end: end, apiKey: apiKey) { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let days):
+                self.mergeDailyTimesheet(days, replacing: interval)
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    private func syncMonths(_ months: [Date], index: Int, apiKey: String, failedMonths: [String]) {
+        guard index < months.count else {
+            isSyncing = false
+            if failedMonths.isEmpty {
+                statusMessage = "Synced available Daily history: \(months.count) months"
+            } else {
+                let failed = failedMonths.joined(separator: ", ")
+                lastHistorySyncError = "Failed months: \(failed)"
+                statusMessage = "History sync finished with \(failedMonths.count) failed month(s)."
+            }
+            return
+        }
+
+        let month = months[index]
+        let title = Formatters.monthTitle.string(from: month)
+        statusMessage = "Syncing history \(index + 1)/\(months.count): \(title)"
+
+        fetchMonth(containing: month, apiKey: apiKey) { [weak self] result in
+            guard let self = self else { return }
+            var failures = failedMonths
+            if case .failure = result {
+                failures.append(title)
+            }
+            self.syncMonths(months, index: index + 1, apiKey: apiKey, failedMonths: failures)
+        }
+    }
+
+    private func availableHistoryMonths(dataRetentionDays: Int) -> [Date] {
+        let today = Date()
+        let startDate: Date
+
+        if dataRetentionDays > 0 {
+            startDate = calendar.date(byAdding: .day, value: -dataRetentionDays + 1, to: today) ?? today
+        } else {
+            // Daily normally reports retention in days. If it does not, keep this bounded.
+            startDate = calendar.date(byAdding: .year, value: -1, to: today) ?? today
+        }
+
+        let firstMonth = calendar.monthInterval(containing: startDate).start
+        let currentMonth = calendar.monthInterval(containing: today).start
+        var months: [Date] = []
+        var cursor = firstMonth
+
+        while cursor <= currentMonth {
+            months.append(cursor)
+            guard let next = calendar.date(byAdding: .month, value: 1, to: cursor) else {
+                break
+            }
+            cursor = next
+        }
+
+        return months
+    }
+
+    private func mergeDailyTimesheet(_ days: [DailyTimesheetDay], replacing interval: DateInterval) {
         let imported = days.flatMap { day -> [WorksheetEntry] in
             guard let date = Formatters.apiDay.date(from: day.date) else {
                 return []
@@ -171,7 +261,6 @@ final class AppModel: ObservableObject {
             }
         }
 
-        let interval = calendar.monthInterval(containing: selectedMonth)
         let outsideSelectedMonth = entries.filter { interval.contains($0.date) == false }
         let manualAdminEntries = entries.filter { entry in
             interval.contains(entry.date) && entry.source == .manualAdmin

@@ -12,6 +12,7 @@ The app syncs Daily timesheet data, adds local manual admin time, calculates cre
 - Monthly sync from `GET /timesheet`
 - Daily project rows are read-only and marked as synced
 - Manual admin entries are editable and stored locally
+- Full available-history sync based on Daily's API retention window
 - Creative/admin totals and percentages
 - Basic PDF export
 
