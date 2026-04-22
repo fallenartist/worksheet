@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.4
 import PackageDescription
 
 let package = Package(
@@ -10,6 +10,6 @@ let package = Package(
         .executable(name: "DailyWorksheet", targets: ["DailyWorksheet"])
     ],
     targets: [
-        .target(name: "DailyWorksheet")
+        .executableTarget(name: "DailyWorksheet")
     ]
 )
